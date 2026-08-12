@@ -1,10 +1,62 @@
 import streamlit as st
 import time
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pipeline.rag_pipeline import RAGPipeline
 from config import settings
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+# ── Pre-warm: fire a background thread the instant this module is imported ──
+# Streamlit imports app.py before it renders any UI, so by the time the user
+# sees the first frame the heavy work (torch + SentenceTransformer + Qdrant)
+# is already well underway or completely finished.
+_prewarm_done   = threading.Event()
+_prewarm_error  = None
+_prewarm_result = {}   # shared dict filled by the background threads
+
+def _prewarm_worker():
+    global _prewarm_error
+    try:
+        import embeddings.embedding_service as emb_module
+        from sentence_transformers import SentenceTransformer
+        from vectorstore.qdrant_client import get_qdrant_client
+        from llm.groq_client import get_groq_client
+
+        def _load_model():
+            model = SentenceTransformer(settings.EMBEDDING_MODEL)
+            svc = emb_module.EmbeddingService.__new__(emb_module.EmbeddingService)
+            svc.provider   = settings.EMBEDDING_PROVIDER
+            svc.model_name = settings.EMBEDDING_MODEL
+            svc.model      = model
+            emb_module._embedding_service = svc
+            return model
+
+        def _load_qdrant():
+            return get_qdrant_client()
+
+        def _load_groq():
+            return get_groq_client()
+
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            futs = {
+                pool.submit(_load_model):  "model",
+                pool.submit(_load_qdrant): "qdrant",
+                pool.submit(_load_groq):   "groq",
+            }
+            for fut in as_completed(futs):
+                _prewarm_result[futs[fut]] = fut.result()
+
+        _prewarm_result["pipeline"] = RAGPipeline()
+    except Exception as exc:
+        _prewarm_error = exc
+    finally:
+        _prewarm_done.set()
+
+# Daemon=True so it never blocks process exit
+_prewarm_thread = threading.Thread(target=_prewarm_worker, daemon=True, name="prewarm")
+_prewarm_thread.start()
 
 def inject_custom_css():
     st.markdown("""
@@ -180,21 +232,12 @@ def inject_custom_css():
     """, unsafe_allow_html=True)
 
 @st.cache_resource(show_spinner=False)
-def _load_embedding_model(model_name: str):
-    from sentence_transformers import SentenceTransformer
-    return SentenceTransformer(model_name)
-
-@st.cache_resource(show_spinner="Initializing Clinical Decision Support Engine...")
 def get_pipeline():
-    import embeddings.embedding_service as emb_module
-    model = _load_embedding_model(settings.EMBEDDING_MODEL)
-    service = emb_module.EmbeddingService.__new__(emb_module.EmbeddingService)
-    service.provider = settings.EMBEDDING_PROVIDER
-    service.model_name = settings.EMBEDDING_MODEL
-    service.model = model
-    emb_module._embedding_service = service
-    logger.info("Injected cached embedding model into EmbeddingService.")
-    return RAGPipeline()
+    """Wait for the pre-warm thread, then return the already-built pipeline."""
+    _prewarm_done.wait()          # blocks only if still loading (usually near-instant)
+    if _prewarm_error:
+        raise _prewarm_error
+    return _prewarm_result["pipeline"]
 
 def render_data_panel(icon, title, content, is_alert=False):
     """Render an enterprise data panel"""
@@ -218,9 +261,9 @@ def page_symptom_analyzer(pipeline):
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("System Status", "Online", delta="Stable", delta_color="normal")
-    m2.metric("Active Models", "Llama-3.1-8B")
-    m3.metric("Vector Store", "Qdrant Cloud")
-    m4.metric("Knowledge Records", "93 Chunks")
+    m2.metric("Active Models", "Llama-3.1-8B", delta="Groq Cloud", delta_color="off")
+    m3.metric("Vector Store", "Qdrant Cloud", delta="Connected", delta_color="normal")
+    m4.metric("Knowledge Records", "93 Chunks", delta="Indexed", delta_color="off")
     st.markdown("<hr style='border: 1px solid #E5E7EB; margin-bottom: 30px;'>", unsafe_allow_html=True)
 
     st.markdown('<div class="clinical-card">', unsafe_allow_html=True)
@@ -338,33 +381,66 @@ def page_knowledge_base():
     kb_dir = os.path.join(os.path.dirname(__file__), "data", "raw")
     files = glob.glob(os.path.join(kb_dir, "*.md")) + glob.glob(os.path.join(kb_dir, "*.txt")) + glob.glob(os.path.join(kb_dir, "*.pdf"))
 
-    m1, m2 = st.columns(2)
-    m1.metric("Documents Indexed", str(len(files)))
-    m2.metric("Vector Store", "Qdrant Cloud — medical_knowledge")
-    st.markdown("")
+    # ── Centered Qdrant label (plain text, no background) ──
+    st.markdown("""
+        <div style="text-align: center; margin-bottom: 32px;">
+            <div style="color: #111827; font-size: 1.4rem; font-weight: 700;">Qdrant Cloud — medical_knowledge</div>
+        </div>
+    """, unsafe_allow_html=True)
 
     if not files:
-        st.warning("No documents found in data/raw/")
+        st.markdown("""
+            <div style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 10px; text-align: center; padding: 60px; color: #9CA3AF;">
+                <div style="font-size: 3rem; margin-bottom: 16px;">📂</div>
+                <h3 style="color: #6B7280;">No Documents Found</h3>
+                <p style="color: #9CA3AF;">Add <code>.md</code>, <code>.txt</code>, or <code>.pdf</code> files to <code>data/raw/</code> to get started.</p>
+            </div>
+        """, unsafe_allow_html=True)
     else:
-        for fpath in files:
+        for idx, fpath in enumerate(files):
             fname = os.path.basename(fpath)
             fsize = os.path.getsize(fpath)
-            with st.expander(f"📄 {fname}   ({fsize:,} bytes)"):
-                try:
-                    with open(fpath, "r", encoding="utf-8") as f:
-                        content = f.read()
-                    # Count headings as proxy for disease entries
-                    sections = [l.strip() for l in content.splitlines() if l.startswith("### ")]
-                    st.markdown(f"**Sections found:** {len(sections)}")
-                    if sections:
-                        st.markdown("**Topics covered:**")
-                        for s in sections:
-                            st.markdown(f"- {s.replace('### ', '')}")
-                    st.markdown("---")
-                    st.markdown("**Raw Content Preview (first 1500 chars):**")
-                    st.code(content[:1500], language="markdown")
-                except Exception as e:
-                    st.error(f"Could not read file: {e}")
+            try:
+                with open(fpath, "r", encoding="utf-8") as f:
+                    content = f.read()
+
+                sections = [l.strip() for l in content.splitlines() if l.startswith("### ")]
+                word_count = len(content.split())
+
+                # Session state key for toggling this document
+                toggle_key = f"kb_doc_{idx}"
+
+                # Styled card as a clickable button
+                if st.button(
+                    f"📄  {fname}   ({fsize:,} bytes  ·  ~{word_count:,} words  ·  {len(sections)} sections)",
+                    key=f"kb_btn_{idx}",
+                    use_container_width=True
+                ):
+                    st.session_state[toggle_key] = not st.session_state.get(toggle_key, False)
+
+                # Show content below the card when toggled open
+                if st.session_state.get(toggle_key, False):
+                    safe_content = content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                    st.markdown(f"""
+                        <div style="
+                            background: #000000;
+                            color: #EF4444;
+                            border-radius: 0 0 10px 10px;
+                            padding: 24px;
+                            margin-top: -16px;
+                            margin-bottom: 24px;
+                            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+                            font-size: 0.85rem;
+                            line-height: 1.7;
+                            max-height: 500px;
+                            overflow-y: auto;
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                        ">{safe_content}</div>
+                    """, unsafe_allow_html=True)
+
+            except Exception as e:
+                st.error(f"Could not read file: {e}")
 
 
 def page_system_settings():
@@ -374,44 +450,44 @@ def page_system_settings():
 
     s1, s2 = st.columns(2)
     with s1:
-        st.markdown('<div class="clinical-card">', unsafe_allow_html=True)
-        st.markdown("#### 🤖 LLM Configuration")
-        st.table([
-            {"Parameter": "Provider", "Value": "Groq Cloud"},
-            {"Parameter": "Model", "Value": settings.GROQ_MODEL},
-            {"Parameter": "API Key", "Value": "●●●●●●●●" if settings.GROQ_API_KEY else "Not Set"},
-        ])
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("""<div style="background:#FFFFFF; border:1px solid #E5E7EB; border-radius:8px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,0.1); margin-bottom:24px;">
+            <h4 style="color:#111827; margin-top:0;">🤖 LLM Configuration</h4>
+            <table style="width:100%; border-collapse:collapse; color:#111827;">
+                <tr style="border-bottom:1px solid #E5E7EB;"><td style="padding:10px 0; font-weight:500; color:#6B7280;">Provider</td><td style="padding:10px 0; text-align:right;">Groq Cloud</td></tr>
+                <tr style="border-bottom:1px solid #E5E7EB;"><td style="padding:10px 0; font-weight:500; color:#6B7280;">Model</td><td style="padding:10px 0; text-align:right;">""" + settings.GROQ_MODEL + """</td></tr>
+                <tr><td style="padding:10px 0; font-weight:500; color:#6B7280;">API Key</td><td style="padding:10px 0; text-align:right;">""" + ("●●●●●●●●" if settings.GROQ_API_KEY else "Not Set") + """</td></tr>
+            </table>
+        </div>""", unsafe_allow_html=True)
 
-        st.markdown('<div class="clinical-card">', unsafe_allow_html=True)
-        st.markdown("#### 🔢 Embedding Configuration")
-        st.table([
-            {"Parameter": "Provider", "Value": settings.EMBEDDING_PROVIDER},
-            {"Parameter": "Model", "Value": settings.EMBEDDING_MODEL},
-            {"Parameter": "Vector Dimensions", "Value": "384"},
-        ])
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("""<div style="background:#FFFFFF; border:1px solid #E5E7EB; border-radius:8px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,0.1); margin-bottom:24px;">
+            <h4 style="color:#111827; margin-top:0;">🔢 Embedding Configuration</h4>
+            <table style="width:100%; border-collapse:collapse; color:#111827;">
+                <tr style="border-bottom:1px solid #E5E7EB;"><td style="padding:10px 0; font-weight:500; color:#6B7280;">Provider</td><td style="padding:10px 0; text-align:right;">""" + settings.EMBEDDING_PROVIDER + """</td></tr>
+                <tr style="border-bottom:1px solid #E5E7EB;"><td style="padding:10px 0; font-weight:500; color:#6B7280;">Model</td><td style="padding:10px 0; text-align:right;">""" + settings.EMBEDDING_MODEL + """</td></tr>
+                <tr><td style="padding:10px 0; font-weight:500; color:#6B7280;">Vector Dimensions</td><td style="padding:10px 0; text-align:right;">384</td></tr>
+            </table>
+        </div>""", unsafe_allow_html=True)
 
     with s2:
-        st.markdown('<div class="clinical-card">', unsafe_allow_html=True)
-        st.markdown("#### 🗄️ Vector Database Configuration")
-        st.table([
-            {"Parameter": "Provider", "Value": "Qdrant"},
-            {"Parameter": "Connection", "Value": "Cloud" if settings.QDRANT_URL else "Local"},
-            {"Parameter": "Collection", "Value": settings.QDRANT_COLLECTION_NAME if hasattr(settings, 'QDRANT_COLLECTION_NAME') else "medical_knowledge"},
-            {"Parameter": "Top-K Retrieval", "Value": str(settings.TOP_K)},
-            {"Parameter": "API Key", "Value": "●●●●●●●●" if settings.QDRANT_API_KEY else "Not Set"},
-        ])
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("""<div style="background:#FFFFFF; border:1px solid #E5E7EB; border-radius:8px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,0.1); margin-bottom:24px;">
+            <h4 style="color:#111827; margin-top:0;">🗄️ Vector Database Configuration</h4>
+            <table style="width:100%; border-collapse:collapse; color:#111827;">
+                <tr style="border-bottom:1px solid #E5E7EB;"><td style="padding:10px 0; font-weight:500; color:#6B7280;">Provider</td><td style="padding:10px 0; text-align:right;">Qdrant</td></tr>
+                <tr style="border-bottom:1px solid #E5E7EB;"><td style="padding:10px 0; font-weight:500; color:#6B7280;">Connection</td><td style="padding:10px 0; text-align:right;">""" + ("Cloud" if settings.QDRANT_URL else "Local") + """</td></tr>
+                <tr style="border-bottom:1px solid #E5E7EB;"><td style="padding:10px 0; font-weight:500; color:#6B7280;">Collection</td><td style="padding:10px 0; text-align:right;">medical_knowledge</td></tr>
+                <tr style="border-bottom:1px solid #E5E7EB;"><td style="padding:10px 0; font-weight:500; color:#6B7280;">Top-K Retrieval</td><td style="padding:10px 0; text-align:right;">""" + str(settings.TOP_K) + """</td></tr>
+                <tr><td style="padding:10px 0; font-weight:500; color:#6B7280;">API Key</td><td style="padding:10px 0; text-align:right;">""" + ("●●●●●●●●" if settings.QDRANT_API_KEY else "Not Set") + """</td></tr>
+            </table>
+        </div>""", unsafe_allow_html=True)
 
-        st.markdown('<div class="clinical-card">', unsafe_allow_html=True)
-        st.markdown("#### 📦 Application Info")
-        st.table([
-            {"Parameter": "Version", "Value": "v2.4.1 Enterprise"},
-            {"Parameter": "Framework", "Value": "Streamlit"},
-            {"Parameter": "Pipeline", "Value": "RAG (Retrieval-Augmented Generation)"},
-        ])
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("""<div style="background:#FFFFFF; border:1px solid #E5E7EB; border-radius:8px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,0.1); margin-bottom:24px;">
+            <h4 style="color:#111827; margin-top:0;">📦 Application Info</h4>
+            <table style="width:100%; border-collapse:collapse; color:#111827;">
+                <tr style="border-bottom:1px solid #E5E7EB;"><td style="padding:10px 0; font-weight:500; color:#6B7280;">Version</td><td style="padding:10px 0; text-align:right;">v2.4.1 Enterprise</td></tr>
+                <tr style="border-bottom:1px solid #E5E7EB;"><td style="padding:10px 0; font-weight:500; color:#6B7280;">Framework</td><td style="padding:10px 0; text-align:right;">Streamlit</td></tr>
+                <tr><td style="padding:10px 0; font-weight:500; color:#6B7280;">Pipeline</td><td style="padding:10px 0; text-align:right;">RAG (Retrieval-Augmented Generation)</td></tr>
+            </table>
+        </div>""", unsafe_allow_html=True)
 
 
 def main():
@@ -423,7 +499,30 @@ def main():
     )
 
     inject_custom_css()
-    pipeline = get_pipeline()
+
+    # Show animated progress only if the pre-warm thread is still running.
+    # On fast machines / warm restarts, _prewarm_done is already set → instant load.
+    if "pipeline_ready" not in st.session_state:
+        if not _prewarm_done.is_set():
+            bar = st.progress(0, text="⚕️ Starting Clinical Decision Support Engine...")
+            steps = [
+                (20, "🔢 Loading embedding model (PyTorch)..."),
+                (45, "🗄️  Connecting to Qdrant vector store..."),
+                (65, "🤖 Initialising Groq LLM client..."),
+                (85, "🔗 Assembling RAG pipeline..."),
+            ]
+            for pct, msg in steps:
+                if _prewarm_done.is_set():
+                    break
+                bar.progress(pct, text=msg)
+                time.sleep(0.25)          # tiny delay so the bar visually advances
+            bar.progress(100, text="✅ Engine ready!")
+            time.sleep(0.3)
+            bar.empty()
+        pipeline = get_pipeline()
+        st.session_state.pipeline_ready = True
+    else:
+        pipeline = get_pipeline()
 
     # --- Session State Init ---
     if "page" not in st.session_state:
