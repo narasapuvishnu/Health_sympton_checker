@@ -1,26 +1,74 @@
-# Medical Information about Fever and Cough
+# Fever and Cough
 
-## Symptoms Overview
-A fever is a temporary increase in your body temperature, often due to an illness. For an adult, a fever may be uncomfortable, but usually isn't a cause for concern unless it reaches 103 F (39.4 C) or higher.
-A cough is your body's way of responding when something irritates your throat or airways.
+## General Information
 
-## Possible Causes
-Fever and cough are common symptoms of various respiratory illnesses, including:
+Fever is a temporary increase in body temperature and is commonly associated
+with infection or other illnesses.
+
+A cough is the body's natural response to irritation of the throat or airways.
+Fever and cough can occur together in several respiratory illnesses.
+
+## Common Symptoms
+
+- Fever
+- Cough
+- Fatigue
+- Sore throat
+- Runny or stuffy nose
+- Headache
+- Body aches
+
+## Possible Conditions
+
+Fever and cough may occur with several respiratory conditions, including:
+
 - Common cold
 - Influenza (flu)
 - COVID-19
-- Bronchitis
+- Acute bronchitis
 - Pneumonia
 
-## Home Care and Relief
-- Get plenty of rest.
-- Drink fluids to stay hydrated.
-- Take over-the-counter pain relievers such as acetaminophen or ibuprofen to reduce fever.
-- Use a humidifier or take a steamy shower to help ease a cough.
+These symptoms alone cannot determine which condition a person has.
+Different conditions can produce similar symptoms.
 
-## When to Seek Medical Attention
-Seek medical care if you experience:
+## Recommended Care
+
+General supportive measures may include:
+
+- Get adequate rest.
+- Drink enough fluids to help maintain hydration.
+- Monitor symptoms and body temperature.
+- Use appropriate supportive measures for cough and discomfort.
+- Follow the directions on any over-the-counter medication label.
+- Seek medical advice if symptoms are persistent, severe, or worsening.
+
+## Critical Warning Signs
+
+Seek urgent medical attention if any of the following occur:
+
 - Difficulty breathing or shortness of breath
-- Pain or pressure in the chest or abdomen
-- Sudden dizziness, confusion, or severe vomiting
-- Symptoms that improve but then return with a worse fever and cough
+- Chest pain or pressure
+- Severe confusion or unusual difficulty staying awake
+- Severe or persistent vomiting
+- Signs of severe dehydration
+- Symptoms that significantly worsen
+
+## When to Seek Medical Care
+
+Medical evaluation may be appropriate when:
+
+- Symptoms are severe.
+- Symptoms persist or continue to worsen.
+- Symptoms improve and then return with worsening fever or cough.
+- Breathing problems develop.
+- New concerning symptoms appear.
+
+## Important Note
+
+Fever and cough have many possible causes. Symptoms alone cannot establish
+a medical diagnosis. This information is provided for educational purposes
+and should not replace evaluation by a qualified healthcare professional.
+
+## Source
+
+Medical knowledge base document: Fever and Cough
