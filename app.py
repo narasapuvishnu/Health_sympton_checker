@@ -266,7 +266,6 @@ def page_symptom_analyzer(pipeline):
     m4.metric("Knowledge Records", "93 Chunks", delta="Indexed", delta_color="off")
     st.markdown("<hr style='border: 1px solid #E5E7EB; margin-bottom: 30px;'>", unsafe_allow_html=True)
 
-    st.markdown('<div class="clinical-card">', unsafe_allow_html=True)
     st.markdown("### Patient Presentation", unsafe_allow_html=True)
     user_query = st.text_area(
         "Enter Chief Complaint / Symptoms",
@@ -291,7 +290,6 @@ def page_symptom_analyzer(pipeline):
         if sc4.button("Itchy Arm Rash", use_container_width=True):
             st.session_state.symptoms = "Patient developed a very itchy, red, cracked rash with some blisters on the arm."
             st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
     if analyze_btn:
         if not user_query:
@@ -515,9 +513,7 @@ def main():
                 if _prewarm_done.is_set():
                     break
                 bar.progress(pct, text=msg)
-                time.sleep(0.25)          # tiny delay so the bar visually advances
             bar.progress(100, text="✅ Engine ready!")
-            time.sleep(0.3)
             bar.empty()
         pipeline = get_pipeline()
         st.session_state.pipeline_ready = True
