@@ -1,3 +1,4 @@
+import threading
 from typing import List, Dict, Any
 from embeddings.embedding_service import get_embedding_service
 from vectorstore.qdrant_client import get_qdrant_client
@@ -40,11 +41,14 @@ class Retriever:
         logger.info(f"Retrieved {len(retrieval_results)} relevant documents.")
         return retrieval_results
 
-# Singleton pattern
+# Thread-safe singleton
 _retriever = None
+_retriever_lock = threading.Lock()
 
 def get_retriever() -> Retriever:
     global _retriever
     if _retriever is None:
-        _retriever = Retriever()
+        with _retriever_lock:
+            if _retriever is None:
+                _retriever = Retriever()
     return _retriever

@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file if present
-load_dotenv()
+# override=True ensures .env always wins over any shell-inherited env vars
+load_dotenv(override=True)
 
 # LLM Configuration
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")

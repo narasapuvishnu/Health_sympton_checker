@@ -1,10 +1,15 @@
 import os
+import warnings
+import threading
 from typing import List, Dict, Any, Optional
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct
 from models.schemas import DocumentChunk
 from config import settings
 from utils.logger import get_logger
+
+# Suppress the harmless torch.classes path warning on Windows
+warnings.filterwarnings("ignore", message=".*torch.classes.*")
 
 logger = get_logger(__name__)
 
@@ -16,9 +21,9 @@ class QdrantVectorStore:
         # In a real app, this might be dynamic or configured. 
         self.vector_size = 384 
         
-        if settings.QDRANT_URL and settings.QDRANT_API_KEY:
+        if settings.QDRANT_URL:
             logger.info(f"Connecting to Qdrant Cloud at {settings.QDRANT_URL}")
-            self.client = QdrantClient(url=settings.QDRANT_URL, api_key=settings.QDRANT_API_KEY)
+            self.client = QdrantClient(url=settings.QDRANT_URL, api_key=settings.QDRANT_API_KEY or None)
         else:
             logger.info(f"Connecting to local Qdrant at {settings.QDRANT_LOCAL_PATH}")
             os.makedirs(settings.QDRANT_LOCAL_PATH, exist_ok=True)
@@ -93,11 +98,17 @@ class QdrantVectorStore:
             logger.error(f"Error during Qdrant search: {e}")
             return []
 
-# Singleton instance
+# Thread-safe singleton — prevents the Qdrant file-lock race condition
+# that occurs when Streamlit's multiple startup threads all call get_qdrant_client()
+# simultaneously before the cache is populated.
 _qdrant_client = None
+_qdrant_lock = threading.Lock()
 
 def get_qdrant_client() -> QdrantVectorStore:
     global _qdrant_client
     if _qdrant_client is None:
-        _qdrant_client = QdrantVectorStore()
+        with _qdrant_lock:
+            # Double-checked locking: re-check inside the lock
+            if _qdrant_client is None:
+                _qdrant_client = QdrantVectorStore()
     return _qdrant_client

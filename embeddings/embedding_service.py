@@ -51,7 +51,7 @@ class EmbeddingService:
                 
         return chunks
 
-# Singleton instance for the service
+# Singleton instance for the service — persists across Streamlit reruns
 _embedding_service = None
 
 def get_embedding_service() -> EmbeddingService:
@@ -59,3 +59,9 @@ def get_embedding_service() -> EmbeddingService:
     if _embedding_service is None:
         _embedding_service = EmbeddingService()
     return _embedding_service
+
+# Pre-warm: expose the model loader so Streamlit can cache it at app level
+def get_sentence_transformer_model(model_name: str):
+    """Load and return a SentenceTransformer model, cached at module level."""
+    from sentence_transformers import SentenceTransformer
+    return SentenceTransformer(model_name)

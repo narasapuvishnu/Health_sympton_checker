@@ -79,13 +79,20 @@ class RAGPipeline:
                 
             response_dict = json.loads(raw_response)
             
+            # Helper: LLM may return lists instead of strings for some fields.
+            # Convert lists to newline-joined strings for consistent RAGResponse typing.
+            def _to_str(val) -> str:
+                if isinstance(val, list):
+                    return "\n".join(f"• {item}" for item in val)
+                return str(val) if val is not None else ""
+                
             # 7. Construct final typed response
             rag_response = RAGResponse(
-                symptoms_summary=response_dict.get("symptoms_summary", ""),
-                possible_conditions=response_dict.get("possible_conditions", ""),
-                general_information=response_dict.get("general_information", ""),
-                warning_signs=response_dict.get("warning_signs", ""),
-                when_to_seek_care=response_dict.get("when_to_seek_care", ""),
+                symptoms_summary=_to_str(response_dict.get("symptoms_summary", "")),
+                possible_conditions=_to_str(response_dict.get("possible_conditions", "")),
+                general_information=_to_str(response_dict.get("general_information", "")),
+                warning_signs=_to_str(response_dict.get("warning_signs", "")),
+                when_to_seek_care=_to_str(response_dict.get("when_to_seek_care", "")),
                 sources=sources_list
             )
             return True, rag_response
