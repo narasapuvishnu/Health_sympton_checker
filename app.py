@@ -12,166 +12,168 @@ logger = get_logger(__name__)
 def inject_custom_css():
     st.markdown("""
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
         /* Global typography & Outer background */
         html, body, [class*="css"] {
-            font-family: 'Inter', sans-serif;
-            background-color: #F3F4F6;
+            font-family: 'Outfit', sans-serif;
+            background-color: #f0f4f8;
         }
 
-        /* Sidebar Styling - White background */
-        [data-testid="stSidebar"],
+        /* Sidebar Styling - Deep Premium Dark Blue */
+        [data-testid="stSidebar"] {
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+            border-right: none !important;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+        }
         [data-testid="stSidebarContent"] {
-            background-color: #FFFFFF !important;
-            border-right: 1px solid #E5E7EB !important;
+            background-color: transparent !important;
+        }
+        
+        /* Make sidebar text white */
+        [data-testid="stSidebar"] * {
+            color: #f8fafc !important;
         }
 
-        /* Sidebar nav links */
-        .nav-item {
-            display: block;
-            color: #374151 !important;
-            padding: 10px 15px;
-            border-radius: 6px;
-            margin-bottom: 4px;
-            font-weight: 500;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            text-decoration: none !important;
+        /* Sidebar nav links - using Streamlit buttons styled via CSS */
+        [data-testid="stSidebar"] button[kind="secondary"] {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            color: #f1f5f9 !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 8px !important;
+            padding: 12px !important;
+            text-align: left !important;
+            font-weight: 500 !important;
+            transition: all 0.2s ease !important;
+            margin-bottom: 8px !important;
         }
-        .nav-item:hover {
-            background-color: #EFF6FF;
-            color: #1D4ED8 !important;
-            text-decoration: none !important;
+        [data-testid="stSidebar"] button[kind="secondary"]:hover {
+            background-color: rgba(255, 255, 255, 0.15) !important;
+            transform: translateX(4px);
         }
-        .nav-item.active {
-            background-color: #EFF6FF;
-            color: #1D4ED8 !important;
-            font-weight: 600;
-        }
-        .nav-item.disabled {
-            color: #9CA3AF !important;
-            cursor: default;
+        [data-testid="stSidebar"] button[kind="secondary"] p {
+            font-size: 1.05rem !important;
         }
 
         /* Main Content Background */
         .stApp {
-            background-color: #F9FAFB;
+            background: #f8fafc;
+            background-image: radial-gradient(at 0% 0%, hsla(217,100%,97%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(210,100%,95%,1) 0, transparent 50%);
         }
 
         /* Header styling */
         h1, h2, h3, h4 {
-            color: #111827 !important;
-            font-weight: 600 !important;
+            color: #0f172a !important;
+            font-weight: 700 !important;
+            letter-spacing: -0.02em;
         }
 
         /* Metrics */
         div[data-testid="stMetricValue"] {
-            font-size: 1.5rem !important;
-            color: #0369A1 !important;
-            font-weight: 600 !important;
+            font-size: 1.8rem !important;
+            color: #2563eb !important;
+            font-weight: 700 !important;
         }
         div[data-testid="stMetricLabel"] {
             font-weight: 500 !important;
-            color: #6B7280 !important;
+            color: #64748b !important;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.8rem !important;
         }
 
-        /* Input Card */
+        /* Input Card - Glassmorphism */
         .clinical-card {
-            background: #FFFFFF;
-            border: 1px solid #E5E7EB;
-            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
             padding: 24px;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
             margin-bottom: 24px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .clinical-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
         }
 
         /* Text Area */
         .stTextArea textarea {
-            border-radius: 6px !important;
-            border: 1px solid #D1D5DB !important;
-            padding: 12px !important;
-            font-size: 1rem !important;
-            background: #FFFFFF !important;
-            color: #111827 !important;
+            border-radius: 12px !important;
+            border: 2px solid #e2e8f0 !important;
+            padding: 16px !important;
+            font-size: 1.05rem !important;
+            background: #ffffff !important;
+            color: #0f172a !important;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.02);
         }
         .stTextArea textarea:focus {
-            border-color: #0369A1 !important;
-            box-shadow: 0 0 0 1px #0369A1 !important;
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
         }
 
-        /* Primary Button */
-        div.stButton > button:first-child {
-            border-radius: 6px !important;
-            font-weight: 500 !important;
-            padding: 0.5rem 1.5rem !important;
+        /* Primary Button (Analyze) */
+        button[kind="primary"] {
+            border-radius: 10px !important;
+            font-weight: 600 !important;
+            padding: 0.6rem 1.8rem !important;
             border: none !important;
-            background-color: #0369A1 !important;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
             color: white !important;
+            box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.39);
+            transition: all 0.3s ease;
         }
-        div.stButton > button:hover {
-            background-color: #0284C7 !important;
+        button[kind="primary"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
         }
         
-        /* Secondary Action Buttons (Suggestions) */
+        /* Secondary Action Buttons (Main area) */
         div[data-testid="stVerticalBlock"] div.stButton > button[kind="secondary"] {
-            background-color: #F3F4F6 !important;
-            color: #374151 !important;
-            border: 1px solid #D1D5DB !important;
-            font-size: 0.9rem !important;
+            background-color: #ffffff !important;
+            color: #475569 !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 10px !important;
+            font-size: 0.95rem !important;
+            transition: all 0.2s ease;
         }
         div[data-testid="stVerticalBlock"] div.stButton > button[kind="secondary"]:hover {
-            background-color: #E5E7EB !important;
-        }
-
-        /* Data Table (Knowledge Sources) - Force dark text */
-        [data-testid="stTable"] table {
-            color: #111827 !important;
-            background-color: #FFFFFF !important;
-        }
-        [data-testid="stTable"] th {
-            background-color: #F3F4F6 !important;
-            color: #374151 !important;
-            font-weight: 600 !important;
-            border-bottom: 2px solid #E5E7EB !important;
-        }
-        [data-testid="stTable"] td {
-            color: #111827 !important;
-            border-bottom: 1px solid #E5E7EB !important;
-        }
-        [data-testid="stTable"] tr:hover td {
-            background-color: #F9FAFB !important;
+            background-color: #f8fafc !important;
+            border-color: #94a3b8 !important;
+            color: #0f172a !important;
         }
 
         /* Results Data Headers */
         .data-header {
-            background-color: #F3F4F6;
-            border-bottom: 1px solid #E5E7EB;
-            padding: 10px 16px;
-            font-weight: 600;
-            color: #374151;
-            border-radius: 8px 8px 0 0;
+            background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%);
+            border-bottom: 1px solid #e2e8f0;
+            padding: 14px 20px;
+            font-weight: 700;
+            color: #0f172a;
+            border-radius: 16px 16px 0 0;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            font-size: 1.1rem;
         }
         .data-content {
-            padding: 16px;
-            color: #111827;
-            font-size: 0.95rem;
-            line-height: 1.6;
+            padding: 20px;
+            color: #334155;
+            font-size: 1rem;
+            line-height: 1.7;
             white-space: pre-line;
         }
         
         .alert-header {
-            background-color: #FEF2F2 !important;
-            border-bottom: 1px solid #FEE2E2 !important;
-            color: #991B1B !important;
+            background: linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%) !important;
+            border-bottom: 1px solid #fecaca !important;
+            color: #b91c1c !important;
         }
         .alert-content {
-            background-color: #FEF2F2 !important;
-            color: #991B1B !important;
+            background-color: #fef2f2 !important;
+            color: #991b1b !important;
             border-top: none !important;
         }
 
@@ -182,7 +184,7 @@ def inject_custom_css():
 
         /* Spinner Text Color */
         div[data-testid="stSpinner"] > div > div {
-            color: #0369A1 !important;
+            color: #2563eb !important;
             font-weight: 600 !important;
         }
         </style>
@@ -461,26 +463,38 @@ def main():
     if "history" not in st.session_state:
         st.session_state.history = []
 
-    # --- TOP NAVBAR ---
-    nav_col1, nav_col2, nav_col3, nav_col4, nav_col5 = st.columns([2, 1, 1, 1, 1])
-    
-    with nav_col1:
-        st.markdown("<h2 style='color: #111827; font-size: 1.5rem; font-weight: 700; margin: 0; padding-top: 5px;'>⚕️ Aura Health</h2>", unsafe_allow_html=True)
+    # --- SIDEBAR NAV ---
+    with st.sidebar:
+        st.markdown("""
+            <div style='padding: 20px 0 30px 0; text-align: center;'>
+                <div style='font-size: 3rem; margin-bottom: 10px;'>⚕️</div>
+                <h2 style='color: #ffffff; font-size: 1.8rem; font-weight: 700; margin: 0; letter-spacing: 1px;'>Aura Health</h2>
+                <p style='color: #94a3b8; font-size: 0.9rem; margin-top: 5px;'>Diagnostic Intelligence</p>
+            </div>
+        """, unsafe_allow_html=True)
 
-    pages = [
-        ("analyzer",  "🏥 Analyzer", nav_col2),
-        ("history",   "📋 History", nav_col3),
-        ("knowledge", "📚 Knowledge", nav_col4),
-        ("settings",  "⚙️ Settings", nav_col5),
-    ]
-    
-    for key, label, col in pages:
-        with col:
-            if st.button(label, key=f"nav_{key}", use_container_width=True):
+        pages = [
+            ("analyzer",  "🏥", "Symptom Analyzer"),
+            ("history",   "📋", "Patient History"),
+            ("knowledge", "📚", "Knowledge Base"),
+            ("settings",  "⚙️", "System Settings"),
+        ]
+        
+        st.markdown("<div style='padding: 0 10px;'>", unsafe_allow_html=True)
+        for key, icon, label in pages:
+            if st.button(f"{icon}  {label}", key=f"nav_{key}", use_container_width=True):
                 st.session_state.page = key
                 st.rerun()
-                
-    st.markdown("<hr style='margin-top: 0; margin-bottom: 30px; border: none; border-top: 1px solid #E5E7EB;'>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        history_count = len(st.session_state.get("history", []))
+        st.markdown(f"""
+            <div style='margin-top: 60px; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 12px; text-align: center;'>
+                <div style='color: #cbd5e1; font-weight: 600; font-size: 1.1rem;'>{history_count}</div>
+                <div style='color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;'>Session Records</div>
+                <div style='margin-top: 15px; color: #64748b; font-size: 0.75rem;'>v2.4.1 Premium Edition</div>
+            </div>
+        """, unsafe_allow_html=True)
 
     # --- PAGE ROUTING ---
     page = st.session_state.page
