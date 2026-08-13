@@ -179,6 +179,12 @@ def inject_custom_css():
         #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
         footer {visibility: hidden;}
+
+        /* Spinner Text Color */
+        div[data-testid="stSpinner"] > div > div {
+            color: #0369A1 !important;
+            font-weight: 600 !important;
+        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -225,19 +231,15 @@ def page_symptom_analyzer():
 
     if not user_query and not analyze_btn:
         st.markdown("<p style='color: #6B7280; font-size: 0.9rem; margin-top: 15px;'>Test Scenarios:</p>", unsafe_allow_html=True)
+        
+        def set_symptoms(text):
+            st.session_state.symptoms = text
+
         sc1, sc2, sc3, sc4 = st.columns(4)
-        if sc1.button("Fever & Sore Throat", use_container_width=True):
-            st.session_state.symptoms = "Patient presents with a high fever and very severe sore throat for two days."
-            st.rerun()
-        if sc2.button("Migraine w/ Nausea", use_container_width=True):
-            st.session_state.symptoms = "Patient reports an intense, throbbing migraine accompanied by nausea."
-            st.rerun()
-        if sc3.button("Chest & Reflux", use_container_width=True):
-            st.session_state.symptoms = "Patient has severe heartburn after eating, and sour liquid keeps coming up."
-            st.rerun()
-        if sc4.button("Itchy Arm Rash", use_container_width=True):
-            st.session_state.symptoms = "Patient developed a very itchy, red, cracked rash with some blisters on the arm."
-            st.rerun()
+        sc1.button("Fever & Sore Throat", use_container_width=True, on_click=set_symptoms, args=("Patient presents with a high fever and very severe sore throat for two days.",))
+        sc2.button("Migraine w/ Nausea", use_container_width=True, on_click=set_symptoms, args=("Patient reports an intense, throbbing migraine accompanied by nausea.",))
+        sc3.button("Chest & Reflux", use_container_width=True, on_click=set_symptoms, args=("Patient has severe heartburn after eating, and sour liquid keeps coming up.",))
+        sc4.button("Itchy Arm Rash", use_container_width=True, on_click=set_symptoms, args=("Patient developed a very itchy, red, cracked rash with some blisters on the arm.",))
 
     if analyze_btn:
         if not user_query:
