@@ -21,18 +21,20 @@ def inject_custom_css():
         }
 
         /* Sidebar Styling - Deep Premium Dark Blue */
-        [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
-            border-right: none !important;
-            box-shadow: 4px 0 15px rgba(0,0,0,0.1);
-        }
+        [data-testid="stSidebar"], 
+        [data-testid="stSidebar"] > div, 
         [data-testid="stSidebarContent"] {
-            background-color: transparent !important;
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+            background-color: #0f172a !important;
+            border-right: none !important;
         }
         
-        /* Make sidebar text white */
-        [data-testid="stSidebar"] * {
-            color: #f8fafc !important;
+        /* Force all sidebar text to be visible (white) */
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] div {
+            color: #ffffff !important;
         }
 
         /* Sidebar nav links - using Streamlit buttons styled via CSS */
