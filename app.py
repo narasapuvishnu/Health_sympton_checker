@@ -231,10 +231,10 @@ def inject_custom_css():
         </style>
     """, unsafe_allow_html=True)
 
-@st.cache_resource(show_spinner=False)
 def get_pipeline():
     """Wait for the pre-warm thread, then return the already-built pipeline."""
-    _prewarm_done.wait()          # blocks only if still loading (usually near-instant)
+    while not _prewarm_done.is_set():
+        time.sleep(0.2)
     if _prewarm_error:
         raise _prewarm_error
     return _prewarm_result["pipeline"]
