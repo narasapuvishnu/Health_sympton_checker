@@ -8,55 +8,6 @@ from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# ── Pre-warm: fire a background thread the instant this module is imported ──
-# Streamlit imports app.py before it renders any UI, so by the time the user
-# sees the first frame the heavy work (torch + SentenceTransformer + Qdrant)
-# is already well underway or completely finished.
-_prewarm_done   = threading.Event()
-_prewarm_error  = None
-_prewarm_result = {}   # shared dict filled by the background threads
-
-def _prewarm_worker():
-    global _prewarm_error
-    try:
-        import embeddings.embedding_service as emb_module
-        from sentence_transformers import SentenceTransformer
-        from vectorstore.qdrant_client import get_qdrant_client
-        from llm.groq_client import get_groq_client
-
-        def _load_model():
-            model = SentenceTransformer(settings.EMBEDDING_MODEL)
-            svc = emb_module.EmbeddingService.__new__(emb_module.EmbeddingService)
-            svc.provider   = settings.EMBEDDING_PROVIDER
-            svc.model_name = settings.EMBEDDING_MODEL
-            svc.model      = model
-            emb_module._embedding_service = svc
-            return model
-
-        def _load_qdrant():
-            return get_qdrant_client()
-
-        def _load_groq():
-            return get_groq_client()
-
-        with ThreadPoolExecutor(max_workers=3) as pool:
-            futs = {
-                pool.submit(_load_model):  "model",
-                pool.submit(_load_qdrant): "qdrant",
-                pool.submit(_load_groq):   "groq",
-            }
-            for fut in as_completed(futs):
-                _prewarm_result[futs[fut]] = fut.result()
-
-        _prewarm_result["pipeline"] = RAGPipeline()
-    except Exception as exc:
-        _prewarm_error = exc
-    finally:
-        _prewarm_done.set()
-
-# Daemon=True so it never blocks process exit
-_prewarm_thread = threading.Thread(target=_prewarm_worker, daemon=True, name="prewarm")
-_prewarm_thread.start()
 
 def inject_custom_css():
     st.markdown("""
@@ -231,13 +182,10 @@ def inject_custom_css():
         </style>
     """, unsafe_allow_html=True)
 
+@st.cache_resource(show_spinner="Starting Clinical Decision Support Engine...")
 def get_pipeline():
-    """Wait for the pre-warm thread, then return the already-built pipeline."""
-    while not _prewarm_done.is_set():
-        time.sleep(0.2)
-    if _prewarm_error:
-        raise _prewarm_error
-    return _prewarm_result["pipeline"]
+    """Initializes and returns the RAG pipeline."""
+    return RAGPipeline()
 
 def render_data_panel(icon, title, content, is_alert=False):
     """Render an enterprise data panel"""
@@ -260,7 +208,7 @@ def page_symptom_analyzer():
     st.markdown("<p style='color: #6B7280; margin-bottom: 20px;'>Aura Health Diagnostic Intelligence System</p>", unsafe_allow_html=True)
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("System Status", "Online" if _prewarm_done.is_set() else "Starting...", delta="Stable", delta_color="normal")
+    m1.metric("System Status", "Online", delta="Stable", delta_color="normal")
     m2.metric("Active Models", "Llama-3.1-8B", delta="Groq Cloud", delta_color="off")
     m3.metric("Vector Store", "Qdrant Cloud", delta="Connected", delta_color="normal")
     m4.metric("Knowledge Records", "93 Chunks", delta="Indexed", delta_color="off")
@@ -269,7 +217,7 @@ def page_symptom_analyzer():
     st.markdown("### Patient Presentation", unsafe_allow_html=True)
     user_query = st.text_area(
         "Enter Chief Complaint / Symptoms",
-        value=st.session_state.get("symptoms", ""),
+        key="symptoms",
         height=120,
         placeholder="Document patient symptoms here..."
     )
