@@ -6,7 +6,7 @@ load_dotenv(override=True)
 
 # LLM Configuration
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama3-8b-8192")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
 # Vector Database Configuration
 QDRANT_URL = os.getenv("QDRANT_URL", "")

@@ -461,25 +461,26 @@ def main():
     if "history" not in st.session_state:
         st.session_state.history = []
 
-    # --- SIDEBAR NAV ---
-    with st.sidebar:
-        st.markdown("<div style='padding: 10px 0 20px 0;'><h2 style='color: #111827; font-size: 1.4rem; font-weight: 700; margin-bottom: 24px;'>⚕️ Aura Health</h2></div>", unsafe_allow_html=True)
+    # --- TOP NAVBAR ---
+    nav_col1, nav_col2, nav_col3, nav_col4, nav_col5 = st.columns([2, 1, 1, 1, 1])
+    
+    with nav_col1:
+        st.markdown("<h2 style='color: #111827; font-size: 1.5rem; font-weight: 700; margin: 0; padding-top: 5px;'>⚕️ Aura Health</h2>", unsafe_allow_html=True)
 
-        pages = [
-            ("analyzer",  "🏥", "Symptom Analyzer"),
-            ("history",   "📋", "Patient History"),
-            ("knowledge", "📚", "Knowledge Base"),
-            ("settings",  "⚙️", "System Settings"),
-        ]
-        for key, icon, label in pages:
-            is_active = st.session_state.page == key
-            btn_style = "background-color: #EFF6FF; color: #1D4ED8; font-weight: 600;" if is_active else "color: #374151;"
-            if st.sidebar.button(f"{icon}  {label}", key=f"nav_{key}", use_container_width=True):
+    pages = [
+        ("analyzer",  "🏥 Analyzer", nav_col2),
+        ("history",   "📋 History", nav_col3),
+        ("knowledge", "📚 Knowledge", nav_col4),
+        ("settings",  "⚙️ Settings", nav_col5),
+    ]
+    
+    for key, label, col in pages:
+        with col:
+            if st.button(label, key=f"nav_{key}", use_container_width=True):
                 st.session_state.page = key
                 st.rerun()
-
-        history_count = len(st.session_state.get("history", []))
-        st.sidebar.markdown(f"<div style='margin-top: 40px; color: #9CA3AF; font-size: 0.8rem; padding: 0 15px;'>Session Records: {history_count}<br>v2.4.1 Enterprise Build</div>", unsafe_allow_html=True)
+                
+    st.markdown("<hr style='margin-top: 0; margin-bottom: 30px; border: none; border-top: 1px solid #E5E7EB;'>", unsafe_allow_html=True)
 
     # --- PAGE ROUTING ---
     page = st.session_state.page
@@ -491,6 +492,18 @@ def main():
         page_knowledge_base()
     elif page == "settings":
         page_system_settings()
+        
+    # Eagerly initialize pipeline in the background so it doesn't block the initial interface load
+    if "pipeline_warmed_up" not in st.session_state:
+        st.session_state.pipeline_warmed_up = True
+        try:
+            from streamlit.runtime.scriptrunner import add_script_run_ctx
+            t = threading.Thread(target=get_pipeline)
+            add_script_run_ctx(t)
+            t.start()
+        except Exception as e:
+            logger.error(f"Failed to start background warmup: {e}")
+            get_pipeline() # Fallback to blocking if thread fails
 
 
 if __name__ == "__main__":
