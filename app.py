@@ -20,41 +20,39 @@ def inject_custom_css():
             background-color: #f0f4f8;
         }
 
-        /* Sidebar Styling - Deep Premium Dark Blue */
-        [data-testid="stSidebar"], 
-        [data-testid="stSidebar"] > div, 
-        [data-testid="stSidebarContent"] {
-            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
-            background-color: #0f172a !important;
-            border-right: none !important;
+        /* Sidebar Styling - Light Glassmorphism */
+        section[data-testid="stSidebar"] {
+            background-color: #ffffff !important;
+            border-right: 1px solid #e2e8f0 !important;
         }
         
-        /* Force all sidebar text to be visible (white) */
-        [data-testid="stSidebar"] p,
-        [data-testid="stSidebar"] span,
-        [data-testid="stSidebar"] h2,
-        [data-testid="stSidebar"] div {
-            color: #ffffff !important;
+        /* Force all sidebar text to be visible (dark) */
+        section[data-testid="stSidebar"] p,
+        section[data-testid="stSidebar"] span,
+        section[data-testid="stSidebar"] h2,
+        section[data-testid="stSidebar"] div {
+            color: #0f172a !important;
         }
 
         /* Sidebar nav links - using Streamlit buttons styled via CSS */
-        [data-testid="stSidebar"] button[kind="secondary"] {
-            background-color: rgba(255, 255, 255, 0.05) !important;
-            color: #f1f5f9 !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        section[data-testid="stSidebar"] button[kind="secondary"] {
+            background-color: #f8fafc !important;
+            color: #0f172a !important;
+            border: 1px solid #cbd5e1 !important;
             border-radius: 8px !important;
             padding: 12px !important;
             text-align: left !important;
-            font-weight: 500 !important;
+            font-weight: 600 !important;
             transition: all 0.2s ease !important;
             margin-bottom: 8px !important;
         }
-        [data-testid="stSidebar"] button[kind="secondary"]:hover {
-            background-color: rgba(255, 255, 255, 0.15) !important;
+        section[data-testid="stSidebar"] button[kind="secondary"]:hover {
+            background-color: #e2e8f0 !important;
             transform: translateX(4px);
         }
-        [data-testid="stSidebar"] button[kind="secondary"] p {
+        section[data-testid="stSidebar"] button[kind="secondary"] p {
             font-size: 1.05rem !important;
+            color: #0f172a !important;
         }
 
         /* Main Content Background */
@@ -94,10 +92,6 @@ def inject_custom_css():
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
             margin-bottom: 24px;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .clinical-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
         }
 
         /* Text Area */
@@ -145,6 +139,27 @@ def inject_custom_css():
             background-color: #f8fafc !important;
             border-color: #94a3b8 !important;
             color: #0f172a !important;
+        }
+
+        /* Table Styling */
+        [data-testid="stTable"] table {
+            color: #0f172a !important;
+            background-color: #ffffff !important;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            width: 100%;
+        }
+        [data-testid="stTable"] th {
+            background-color: #f1f5f9 !important;
+            color: #334155 !important;
+            font-weight: 700 !important;
+            border-bottom: 2px solid #cbd5e1 !important;
+        }
+        [data-testid="stTable"] td {
+            color: #1e293b !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+            background-color: #ffffff !important;
         }
 
         /* Results Data Headers */
