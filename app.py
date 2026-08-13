@@ -27,11 +27,22 @@ def inject_custom_css():
         }
         
         /* Force all sidebar text to be visible (dark) */
-        section[data-testid="stSidebar"] p,
-        section[data-testid="stSidebar"] span,
-        section[data-testid="stSidebar"] h2,
-        section[data-testid="stSidebar"] div {
+        section[data-testid="stSidebar"] * {
             color: #0f172a !important;
+        }
+
+        /* Ensure table text is dark for visibility */
+        [data-testid="stTable"] table {
+            color: #0f172a !important;
+            background-color: #ffffff !important;
+        }
+        [data-testid="stTable"] th {
+            color: #0f172a !important;
+            background-color: #f3f4f6 !important;
+        }
+        [data-testid="stTable"] td {
+            color: #0f172a !important;
+            background-color: #ffffff !important;
         }
 
         /* Sidebar nav links - using Streamlit buttons styled via CSS */
