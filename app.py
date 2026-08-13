@@ -255,12 +255,12 @@ def render_data_panel(icon, title, content, is_alert=False):
         </div>
     """, unsafe_allow_html=True)
 
-def page_symptom_analyzer(pipeline):
+def page_symptom_analyzer():
     st.title("Clinical Decision Support")
     st.markdown("<p style='color: #6B7280; margin-bottom: 20px;'>Aura Health Diagnostic Intelligence System</p>", unsafe_allow_html=True)
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("System Status", "Online", delta="Stable", delta_color="normal")
+    m1.metric("System Status", "Online" if _prewarm_done.is_set() else "Starting...", delta="Stable", delta_color="normal")
     m2.metric("Active Models", "Llama-3.1-8B", delta="Groq Cloud", delta_color="off")
     m3.metric("Vector Store", "Qdrant Cloud", delta="Connected", delta_color="normal")
     m4.metric("Knowledge Records", "93 Chunks", delta="Indexed", delta_color="off")
@@ -296,7 +296,12 @@ def page_symptom_analyzer(pipeline):
             st.error("Please enter patient symptoms.")
         else:
             with st.spinner("Executing semantic search and LLM synthesis..."):
-                success, result = pipeline.process_query(user_query)
+                try:
+                    pipeline = get_pipeline()
+                    success, result = pipeline.process_query(user_query)
+                except Exception as e:
+                    success = False
+                    result = str(e)
 
             if not success:
                 st.error(f"System Error: {result}", icon="🚨")
@@ -498,28 +503,6 @@ def main():
 
     inject_custom_css()
 
-    # Show animated progress only if the pre-warm thread is still running.
-    # On fast machines / warm restarts, _prewarm_done is already set → instant load.
-    if "pipeline_ready" not in st.session_state:
-        if not _prewarm_done.is_set():
-            bar = st.progress(0, text="⚕️ Starting Clinical Decision Support Engine...")
-            steps = [
-                (20, "🔢 Loading embedding model (PyTorch)..."),
-                (45, "🗄️  Connecting to Qdrant vector store..."),
-                (65, "🤖 Initialising Groq LLM client..."),
-                (85, "🔗 Assembling RAG pipeline..."),
-            ]
-            for pct, msg in steps:
-                if _prewarm_done.is_set():
-                    break
-                bar.progress(pct, text=msg)
-            bar.progress(100, text="✅ Engine ready!")
-            bar.empty()
-        pipeline = get_pipeline()
-        st.session_state.pipeline_ready = True
-    else:
-        pipeline = get_pipeline()
-
     # --- Session State Init ---
     if "page" not in st.session_state:
         st.session_state.page = "analyzer"
@@ -551,7 +534,7 @@ def main():
     # --- PAGE ROUTING ---
     page = st.session_state.page
     if page == "analyzer":
-        page_symptom_analyzer(pipeline)
+        page_symptom_analyzer()
     elif page == "history":
         page_patient_history()
     elif page == "knowledge":
